@@ -1,9 +1,10 @@
-#Marisa Acierno's Choose Your Own Project for Harvard edX Data Science Capstone
+#Marisa Acierno's Choose Your Own Capstone Project for Harvard edX Data Science Capstone
 #install and load necessary packages as needed
 if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
 if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
 if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
 if(!require(gghighlight)) install.packages("gghighlight", repos = "https://cran.us.r-project.org")
+if(!require(dplyr)) install.packages("dplyr", repos = "http://cran.us.r-project.org")
 library(dplyr)
 library(gghighlight)
 library(tidyverse)
@@ -23,18 +24,24 @@ train_set <- wines[-test_index,] %>% as.data.frame(.)
 test_set <- wines[test_index] %>% as.data.frame(.)
 
 ####Data Exploration and Visualization####
+variable.names(train_set[1:12])
+mean(train_set$quality)
+
 train_set %>% ggplot(aes(quality)) + geom_histogram(color = "black", fill = "honeydew1", bins = 8) + 
   ggtitle("Wine Quality Frequency") + labs(x = "Wine Quality", y = "Frequency") + theme_bw()
 
 train_set %>% group_by(pH) %>% summarise(m = mean(quality)) %>% ggplot(aes(pH, m)) + 
-  geom_line(color = "deepskyblue1", size = 1.5) + geom_smooth() + theme_bw() + labs(title = "Average Wine Quality per pH")
+  geom_line(color = "deepskyblue1", size = 1.5) + geom_smooth() + theme_bw() + 
+  labs(title = "Average Wine Quality per pH", y = "Mean Quality", x = "pH value")
 train_set %>% group_by(alcohol) %>% summarise(m = mean(quality)) %>% ggplot(aes(alcohol, m)) + 
-  geom_line(color = "aquamarine", size = 1.5) + geom_smooth() + theme_bw() + labs(title = "Average Wine Quality per Alcohol Level")
+  geom_line(color = "aquamarine", size = 1.5) + geom_smooth() + theme_bw() + 
+  labs(title = "Average Wine Quality per Alcohol Level", y = "Mean Quality", x = "Alcohol Level (as percentage)")
 train_set %>% group_by(sulphates) %>% summarise(m = mean(quality)) %>% ggplot(aes(sulphates, m)) + 
-  geom_line(color = "dodgerblue", size = 1.5) + geom_smooth() + theme_bw() + labs(title = "Average Wine Quality per Sulphates Level")
+  geom_line(color = "dodgerblue", size = 1.5) + geom_smooth() + theme_bw() + 
+  labs(title = "Average Wine Quality per Sulphates Level", y = "Mean Quality", x = "Sulphate Level")
 
 #M###Models####
-##Model 1: Just the average
+## Model 1: Just the average
 sd(train_set$quality)
 mu <- mean(train_set$quality)
 #determine the RMSE of the model
@@ -42,13 +49,13 @@ RMSE_mu <- RMSE(round(mu, digits=0), test_set$quality)
 #determine the accuracy, i.e. how often does the predicted value = the test set value
 acc_mu <- mean(round(mu, digits=0) == test_set$quality)
 
-##Model 2: Linear regression
+## Model 2: Linear regression
 fit_lm <- lm(quality ~ ., data = train_set)
 predict_lm <- predict(fit_lm, test_set) %>% round(., digits = 0)
 RMSE_lm <- RMSE(predict_lm, test_set$quality)
 acc_lm <- mean(predict_lm == test_set$quality)
 
-##Model 3: knn model
+## Model 3: knn model
 #run the knn model with a range of differen k values to find best tune
 set.seed(1)
 fit_knn <- train(quality ~ ., method = "knn", data = train_set, tuneGrid = data.frame(k = seq(1, 40, 2)))
@@ -64,7 +71,7 @@ predict_knn29 <- predict(fit_knn29, test_set) %>% round(., digits = 0)
 RMSE_knn29 <- RMSE(predict_knn29, test_set$quality)
 acc_knn29 <- mean(predict_knn29 == test_set$quality)
 
-##Model 4: Random forest - FYI this takes awhile
+## Model 4: Random forest - FYI this takes awhile
 fit_rf <- train(quality ~ ., method = "rf", data = train_set)
 predict_rf <- predict(fit_rf, test_set) %>% round(., digits = 0)
 RMSE_rf <- RMSE(predict_rf, test_set$quality)
@@ -97,6 +104,3 @@ compare_sd <- data.frame("Predicted SD" = p_sd, "True SD" = t_sd)
 #How often is the prediction within one point of the true value?
 within_one <- ifelse(abs(prediction$predict_best - prediction$true_quality) <= 1, "0", "1") %>% as.numeric(.)
 1 - (sum(within_one)/length(within_one))
-#I got the right quality score or was within one point in either direction 97% of the time
-#Given how personal wine tastings and perceptions of quality are, I would consider this a successful model to inform wine choices
-
